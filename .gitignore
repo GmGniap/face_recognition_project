@@ -1,0 +1,7 @@
+/dlib
+/environment
+/test_images/
+/train_images/
+/validation
+*.jpg
+*.png
