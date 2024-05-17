@@ -5,7 +5,11 @@ from collections import Counter
 from PIL import Image, ImageDraw, ImageFont
 import cv2 as cv
 
-DEFAULT_ENCODING_PATH = Path('output/encodings.pk1')
+# DEFAULT_ENCODING_PATH = Path('output/encodings.pk1')
+
+## Testing with web-cam images
+model_num = input("Enter model number : ")
+DEFAULT_ENCODING_PATH = Path(f'output/{model_num}.pickle')
 
 Path('train_images').mkdir(exist_ok=True)
 Path('output').mkdir(exist_ok=True)
@@ -40,7 +44,10 @@ def _recognize_face(unknown_encoding, loaded_encodings):
         if match
     )
     if votes:
+        print(votes)
         return votes.most_common(1)[0][0]
+    return None
+    
 
 def _display_face(draw, bounding_box, name):
     BOUNDING_BOX_COLOR = "blue"
@@ -63,7 +70,7 @@ def _display_face(draw, bounding_box, name):
     
 def recognize_faces(
     image_location: str,
-    model: str = 'cnn',
+    model: str = 'hog',
     encodings_location: Path = DEFAULT_ENCODING_PATH,
 ) -> None:
     with encodings_location.open(mode='rb') as f:
@@ -89,7 +96,7 @@ def recognize_faces(
         _display_face(draw, bounding_box, name)
 
     del draw
-    pillow_image.save('output.jpg')
+    # pillow_image.save('output.jpg')
 
 
-recognize_faces("test_images/test.jpg")
+recognize_faces("test_images/p1.jpg")
