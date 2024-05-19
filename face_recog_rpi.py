@@ -1,6 +1,7 @@
 import face_recognition
 import pickle
 from pathlib import Path
+from numpy import argmin
 import cv2
 
 class FaceRecognitionPi:
@@ -36,20 +37,48 @@ class FaceRecognitionPi:
             ## Capture a frame
             ret, frame = cap.read()
             
-            ## Show image
-            cv2.imshow('WebCam', frame)
+            ## Convert to Gray for face detection
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+            ## run opencv face detection
+            face_cascade = cv2.CascadeClassifier(f'{cv2.data.haarcascades}haarcascade_frontalface_default.xml')
+            faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
+            
+            if len(faces) < 1:
+                print("No face detected!")
+            elif len(faces) > 1:
+                print(f"Multiple {len(faces)} faces more than 1.")
+            else:
+                print("Only 1 face detected!")
+                for (x,y,w,h) in faces:
+                    roi_color = frame[y:y+h, x:x+w]
+                    cv2.imwrite('camera.jpg', roi_color)
+                    image = face_recognition.load_image_file('camera.jpg')
+                    
+                    face_location = face_recognition.face_locations(image, model="hog")
+                    face_encoding = face_recognition.face_encodings(image, face_location)
+                ## return first & only encoding
+                return face_encoding[0]
         
-        cap.release()
-        cv2.destroyAllWindows()
-
-# model_path = Path('output/encodings.pk1')
-# print(type(model_path))
-# fr = FaceRecognitionPi().read_pickle_model(model_path)
-# print(type(fr))
-# print(fr)
-
+    def recognize_face(self, model_path):
+        camera_encoding = self.take_webcam_img()
+        train_model = self.read_pickle_model(model_path)
+        boolean_matches = face_recognition.compare_faces(
+            train_model['encodings'], camera_encoding
+        )
+        
+        face_distances = face_recognition.face_distance(train_model['encodings'], camera_encoding)
+        
+        best_match_index = argmin(face_distances)
+        print(set(train_model['names']))
+        if boolean_matches[best_match_index]:
+            name = train_model['names'][best_match_index]
+            print(name)
+        else:
+            print("something")
+        
+        
+## Testing Code
+model_path = Path('output/May18.pickle')
 test = FaceRecognitionPi()
-test.take_webcam_img()
+test.recognize_face(model_path)
