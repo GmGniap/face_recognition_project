@@ -70,15 +70,20 @@ class FaceRecognitionPi:
         face_distances = face_recognition.face_distance(train_model['encodings'], camera_encoding)
         
         best_match_index = argmin(face_distances)
-        print(set(train_model['names']))
+        # print(set(train_model['names']))
         if boolean_matches[best_match_index]:
             name = train_model['names'][best_match_index]
-            print(name)
+            return 200, name
         else:
             print("something")
+            return None, 'Unknown'
         
         
 ## Testing Code
 model_path = Path('output/May18.pickle')
 test = FaceRecognitionPi()
-test.recognize_face(model_path)
+status, name = test.recognize_face(model_path)
+if status == 200:
+    print(f"Allow access for {name}")
+else:
+    print(f"Can't allow for {name}")
