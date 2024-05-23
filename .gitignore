@@ -3,5 +3,6 @@
 /test_images/
 /train_images/
 /validation
+.vscode/
 *.jpg
 *.png
