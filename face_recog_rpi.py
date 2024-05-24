@@ -1,8 +1,8 @@
 import face_recognition
 import pickle
-from pathlib import Path
 from numpy import argmin
 import cv2
+from pathlib import Path
 
 class FaceRecognitionPi:
     def __init__(self) -> None:
@@ -76,9 +76,4 @@ class FaceRecognitionPi:
             print(name)
         else:
             print("something")
-        
-        
-## Testing Code
-model_path = Path('output/May18.pickle')
-test = FaceRecognitionPi()
-test.recognize_face(model_path)
+
