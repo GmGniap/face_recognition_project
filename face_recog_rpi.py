@@ -1,8 +1,8 @@
 import face_recognition
 import pickle
-from pathlib import Path
 from numpy import argmin
 import cv2
+from pathlib import Path
 from rpi_controller import RaspberryPi
 import time
 
