@@ -28,6 +28,19 @@ class RaspberryPi:
                 serial_port.write(msg)
         except serial.SerialException as e:
             print(f"Error sending data : {str(e)}")
+    
+    def receive_data(self):
+        try:
+            with self.open_serial_conn(2) as serial_port:
+                serial_port.reset_input_buffer()
+                print("Start receiving..")
+                while True:
+                    if serial_port.in_waiting > 0:
+                        data = serial_port.readline().decode().split("\n")[0]
+                        print(f"Received data : {data}")
+                        return data
+        except Exception as e:
+            print(f"Error receiving data : {str(e)}")
             
                 
             

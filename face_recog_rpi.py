@@ -79,18 +79,3 @@ class FaceRecognitionPi:
         else:
             print("something")
             return None, 'Unknown'
-        
-        
-## Testing Code
-model_path = Path('output/May18.pickle')
-test = FaceRecognitionPi()
-rpi = RaspberryPi()
-status, name = test.recognize_face(model_path)
-if status == 200:
-    print(f"Allow access for {name}")
-    rpi.send_data('on')
-    print("Sent data!")
-    time.sleep(2)
-    rpi.send_data('off')
-else:
-    print(f"Can't allow for {name}")
