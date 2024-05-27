@@ -1,5 +1,7 @@
 from rpi_controller import RaspberryPi
 from face_recog_rpi import FaceRecognitionPi
+from pathlib import Path
+import time
 
 model_path = Path('output/May18.pickle')
 rpi = RaspberryPi()
@@ -14,7 +16,7 @@ while True:
             print(f"Allow access for {name}")
             rpi.send_data('on')
             print("Sent data!")
-            time.sleep(2)
+            time.sleep(10)
             rpi.send_data('off')
         else:
             print(f"Can't allow for {name}")

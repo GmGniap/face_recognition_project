@@ -48,8 +48,10 @@ class FaceRecognitionPi:
             
             if len(faces) < 1:
                 print("No face detected!")
+                continue
             elif len(faces) > 1:
                 print(f"Multiple {len(faces)} faces more than 1.")
+                continue
             else:
                 print("Only 1 face detected!")
                 for (x,y,w,h) in faces:
@@ -60,10 +62,12 @@ class FaceRecognitionPi:
                     face_location = face_recognition.face_locations(image, model="hog")
                     face_encoding = face_recognition.face_encodings(image, face_location)
                 ## return first & only encoding
-                return face_encoding[0]
+                return face_encoding[0] if len(face_encoding) == 1 else None
         
     def recognize_face(self, model_path):
         camera_encoding = self.take_webcam_img()
+        if camera_encoding is None:
+            raise ValueError("Camera Encoding return None!")
         train_model = self.read_pickle_model(model_path)
         boolean_matches = face_recognition.compare_faces(
             train_model['encodings'], camera_encoding
