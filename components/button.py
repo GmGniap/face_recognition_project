@@ -11,16 +11,22 @@ class Button:
         
         self.interrupt_flag = False
         self.debounce_time = 0
-    
-    def irq_handler(self):
-        ## add delay - why?
-        utime.sleep_ms(100)
+        print("Setting button pins - Done!")
         
-        if (utime.ticks_ms() - self.debounce_time) > 500:
-            print("IRQ Handler function")
-            self.interrupt_flag = True
-            
-            if self.callback is not None:
-                self.callback()
+    
+    def irq_handler(self, irq_pin):
+        print("Starting IRQ ")
+        ## add delay - why?
+        # utime.sleep_ms(100)
+        
+        # if (utime.ticks_ms() - self.debounce_time) > 500:
+        print("IRQ Handler function")
+        self.interrupt_flag = True
+        
+        if self.callback is not None:
+            self.callback(irq_pin)
                 
-            self.debounce_time = utime.ticks_ms()
+            # self.debounce_time = utime.ticks_ms()
+    
+    def deinit(self):
+        self.button_pin.irq(trigger=0, handler=None)
