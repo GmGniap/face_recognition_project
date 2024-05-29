@@ -3,6 +3,7 @@
 /test_images/
 /train_images/
 /validation
+__pycache__/
 .vscode/
 *.jpg
 *.png

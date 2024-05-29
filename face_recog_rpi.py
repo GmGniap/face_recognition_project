@@ -3,6 +3,8 @@ import pickle
 from numpy import argmin
 import cv2
 from pathlib import Path
+from rpi_controller import RaspberryPi
+import time
 
 class FaceRecognitionPi:
     def __init__(self) -> None:
@@ -46,8 +48,10 @@ class FaceRecognitionPi:
             
             if len(faces) < 1:
                 print("No face detected!")
+                continue
             elif len(faces) > 1:
                 print(f"Multiple {len(faces)} faces more than 1.")
+                continue
             else:
                 print("Only 1 face detected!")
                 for (x,y,w,h) in faces:
@@ -58,10 +62,12 @@ class FaceRecognitionPi:
                     face_location = face_recognition.face_locations(image, model="hog")
                     face_encoding = face_recognition.face_encodings(image, face_location)
                 ## return first & only encoding
-                return face_encoding[0]
+                return face_encoding[0] if len(face_encoding) == 1 else None
         
     def recognize_face(self, model_path):
         camera_encoding = self.take_webcam_img()
+        if camera_encoding is None:
+            raise ValueError("Camera Encoding return None!")
         train_model = self.read_pickle_model(model_path)
         boolean_matches = face_recognition.compare_faces(
             train_model['encodings'], camera_encoding
@@ -70,10 +76,10 @@ class FaceRecognitionPi:
         face_distances = face_recognition.face_distance(train_model['encodings'], camera_encoding)
         
         best_match_index = argmin(face_distances)
-        print(set(train_model['names']))
+        # print(set(train_model['names']))
         if boolean_matches[best_match_index]:
             name = train_model['names'][best_match_index]
-            print(name)
+            return 200, name
         else:
             print("something")
-
+            return None, 'Unknown'
