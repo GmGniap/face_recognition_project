@@ -1,7 +1,7 @@
 import cv2
 import os
 
-from constants import VIDEO_WIDTH, VIDEO_HEIGHT, NUM_TRAINING_IMG
+from rpi_constants import VIDEO_WIDTH, VIDEO_HEIGHT, NUM_TRAINING_IMG
 cap = cv2.VideoCapture(0)
 
 ## Check if the webcam is opened correctly
