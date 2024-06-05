@@ -1,5 +1,6 @@
 # from constants import BUTTON_PIN
 from machine import Pin
+import utime
 
 class Button:
     def __init__(self, button_pin, callback=None) -> None:
@@ -17,6 +18,9 @@ class Button:
     def change_button_state(self):
         self.button_state = not self.button_state
     
+    def get_button_pin(self):
+        return self.button_pin 
+    
     def get_button_state(self):    
         return self.button_state
     
@@ -26,21 +30,23 @@ class Button:
     def irq_handler(self, irq_pin):
         ## add delay - why?
         # utime.sleep_ms(100)
+        # now_time = utime.ticks_ms()
         
-        # if (utime.ticks_ms() - self.debounce_time) > 500:
         print("Calling IRQ Handler function")
-        
+    
         ## change button_state - do I need to change here?
         # self.change_button_state()
         
         ## If clicked, set button_state to True
-        self.set_button_state(True)
+        # self.set_button_state(True)
         
         if self.callback is not None:
             self.callback(irq_pin)
-                
-            # self.debounce_time = utime.ticks_ms()
+    
         return
     
+    def enable_irq(self):
+        self.button_pin.irq(handler=None)
+        
     def deinit(self):
         self.button_pin.irq(trigger=0, handler=None)

@@ -4,17 +4,19 @@ from components.button import Button
 from components.slide_switch import Slide
 from components.keypad import Keypad
 from components.relay import Relay
+from components.buzzer import Buzzer
 
-from pico_constants import BUTTON_PIN, LED1_PIN, LED3_PIN, SLIDE_PIN, RELAY_PIN
+from machine import Pin
+from pico_constants import BUTTON_PIN, LED1_PIN, LED3_PIN, SLIDE_PIN, RELAY_PIN, BUZZER_PIN
 import utime
 
-stop_flag = False
-last_time = 0 ## the last time we pressed button
-
+## Setting Up
 pico = Pico(0)
 
 red_led = LED(LED1_PIN)
 green_led = LED(LED3_PIN)
+
+buzz = Buzzer(BUZZER_PIN)
 
 solenoid_relay = Relay(RELAY_PIN)
 
@@ -26,25 +28,61 @@ keypad = Keypad(
     [['1','2',"3",'A'],['4','5','6','B'],['7','8','9','C'], ['*','0',"#","D"]]        
     )
 
-def callback_reset(pin):
-    print(f"Reset here for {str(pin)}")
-
-    '''
-    ## what is the purpose of below if-statement?? no need?
+def leff_keypad_operation():
+    red_led.on()
+    ## Keypad function will start.
+    print("Checking Keypad input...")
     
-    if not stop_flag and '16' in str(pin):
-        print("1st time runner")
-        # pico.send_data("start")
-    else:
-        print("Interrupt running task")
-        # pico.send_data("start")
-    stop_flag = not stop_flag
-    '''
+    if keypad.check_pwd():
+        green_led.on()
+        buzz.play_short(500)
+        solenoid_relay.off()
+        red_led.off()
+        utime.sleep(3)
+        green_led.off()
+
+def right_camera_operation():
+    ## Send data to Rpi to start Face Recognition process
+    pico.send_data('start')
+    
+    ## Add exit function if waiting time is over 30 second to receive data from Rpi
+    while True:
+        print("Pico waiting reply from Rpi...")
+        if msg := pico.receive_data():
+            red_led.off()
+            print(f"Here's msg : {msg}")
+            if msg == 'on':
+                green_led.on()
+                solenoid_relay.off()
+                utime.sleep(2)
+                green_led.off()
+            break
+        else:
+            red_led.on()
+            # utime.sleep(2)
+    
+def check_switch(pin):
+    global switch_state
+    global switched
+    global last_switch_state
+    switch_state = button.value()
+    print(f"Switch Value : {switch_state}")
+    if switch_state != last_switch_state:
+        switched = True
+    last_switch_state = switch_state
+    print("Ending Interrupt handler func.")
+    return
         
+button = Pin(BUTTON_PIN, Pin.IN, Pin.PULL_UP)
+switch_state = button.value()
+last_switch_state = switch_state
+switched = False
 
-button = Button(button_pin=BUTTON_PIN, callback=callback_reset)
-
+## Setting irq
+button.irq(trigger=Pin.IRQ_FALLING, handler=check_switch)
 while True:
+    ## At the beginning , disable irq interrupt
+    
     ## Open Solenoid
     solenoid_relay.on()
     
@@ -52,46 +90,15 @@ while True:
     slide.set_slide_pos()
     slide_pos = slide.get_slide_pos()
     
-    ## After knowing slider position, get button state
-    button_state = button.get_button_state()
+    print(f"Slide: {slide_pos}, SS: {switch_state}, S: {switched}, LSS: {last_switch_state}")
+    
+    if switched:
+        if switch_state == 1:
+            if slide_pos == 'Left':
+                leff_keypad_operation()
 
-    print(f"S: {slide_pos}, B: {button_state}")
-    if slide_pos == 'Left':
-        red_led.on()
-        ## Keypad function will start when button is pressed.
-        if button_state:
-            print("Checking Keypad input...")
-            
-            if keypad.check_pwd():
-                solenoid_relay.off()
-                red_led.off()
-                green_led.on()
-                utime.sleep(3)
-                green_led.off()
-                
-            ## change back from True to False
-            button.change_button_state()
-            # break
-    elif slide_pos == 'Right':
-        if button_state:
-            ## Send data to Rpi to start Face Recognition process
-            pico.send_data('start')
-            
-            ## Waiting reply from Rpi
-            while pico.get_uart().any():
-                ## Add exit function if waiting time is over 30 second to receive data from Rpi
-                if msg := pico.receive_data():
-                    red_led.off()
-                    print(f"Here's msg : {msg}")
-                    if msg == 'on':
-                        green_led.on()
-                        solenoid_relay.off()
-                        utime.sleep(2)
-                        green_led.off()
-                    ## After solenoid task, button_state need to change back to False
-                    button.set_button_state(False)
-                else:
-                    red_led.on()
-                    # utime.sleep(2)
-                             
+            elif slide_pos == 'Right':
+                right_camera_operation()
+        switched = False
+                                
     utime.sleep_ms(200)
