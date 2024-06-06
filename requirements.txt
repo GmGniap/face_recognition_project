@@ -1,1 +1,9 @@
-pyserial
+face-recognition==1.3.0
+face_recognition_models==0.3.0
+opencv-python==4.9.0.80
+cmake==3.29.2
+dill==0.3.8
+dlib==19.24.99
+numpy==1.26.4
+pyserial==3.5
+wheel==0.43.0
