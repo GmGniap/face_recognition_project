@@ -2,27 +2,46 @@ import face_recognition
 import pickle
 from numpy import argmin
 import cv2
+import dlib
 from pathlib import Path
 from rpi_controller import RaspberryPi
 import time
+from custom_errors import CameraEncodingError, NoFaceDetectError, MultiFaceDetectError
 
 class FaceRecognitionPi:
-    def __init__(self) -> None:
-        pass
+    def __init__(self, model_path : Path) -> None:
+        self.model_path = model_path
     
-    @staticmethod
-    def read_pickle_model(MODEL_PATH : Path) -> dict:
+    def read_pickle_model(self) -> dict:
         '''
         MODEL_PATH : Exact location of Pickle file that stored model
         Return : Reconstituted object hierarchy (which is Dict)
         '''
         
         ## check MODEL_PATH is a file
-        if MODEL_PATH.is_file():
-            with MODEL_PATH.open(mode="rb") as model:
+        if self.model_path.is_file():
+            with self.model_path.open(mode="rb") as model:
                 return pickle.load(model)
         else:
             raise ValueError("Provided path is wrong.")
+    
+    @staticmethod
+    def dlib_hog_method(img_gray):
+        detector = dlib.get_frontal_face_detector()
+        faces = detector(img_gray)
+        return faces
+    
+    @staticmethod
+    def haar_cascade_method(img_gray):
+        face_cascade = cv2.CascadeClassifier(f'{cv2.data.haarcascades}haarcascade_frontalface_alt.xml')
+        faces = face_cascade.detectMultiScale(
+            img_gray,
+            scaleFactor=1.3,
+            minNeighbors=5,
+            minSize=(100,100),
+            flags=cv2.CASCADE_SCALE_IMAGE
+        )
+        return faces
     
     def take_webcam_img(self):
         ## open the webcam
@@ -32,9 +51,11 @@ class FaceRecognitionPi:
         if not cap.isOpened():
             raise Exception('Could not open webcam!')
         
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1200)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 300)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 300)
         
+        ## To count multiple face & no face error
+        error_count = 0
         while True:
             ## Capture a frame
             ret, frame = cap.read()
@@ -42,44 +63,68 @@ class FaceRecognitionPi:
             ## Convert to Gray for face detection
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             
-            ## run opencv face detection
-            face_cascade = cv2.CascadeClassifier(f'{cv2.data.haarcascades}haarcascade_frontalface_default.xml')
-            faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
-            
+            ## run face detection method - default OpenCV Cascade
+            if error_count < 5:
+                print("Dlib face detection method")
+                faces = self.dlib_hog_method(gray)
+            else:
+                print("OpenCV haar cascade face detection method")
+                faces = self.haar_cascade_method(gray)
+                if error_count > 10:
+                    print("Reset error_count!")
+                    error_count = 0
+        
             if len(faces) < 1:
                 print("No face detected!")
+                error_count += 1
+                time.sleep(2)
                 continue
             elif len(faces) > 1:
                 print(f"Multiple {len(faces)} faces more than 1.")
+                error_count += 1
+                time.sleep(2)
                 continue
             else:
-                print("Only 1 face detected!")
-                for (x,y,w,h) in faces:
-                    roi_color = frame[y:y+h, x:x+w]
-                    cv2.imwrite('camera.jpg', roi_color)
-                    image = face_recognition.load_image_file('camera.jpg')
-                    
-                    face_location = face_recognition.face_locations(image, model="hog")
-                    face_encoding = face_recognition.face_encodings(image, face_location)
+                print(f"Only {len(faces)} face detected!")
+                
+                ## why do I need to get x,y,w,h?
+                # for (x,y,w,h) in faces:
+                #     roi_color = frame[y:y+h, x:x+w]
+                cv2.imwrite('camera.jpg', frame)
+                image = face_recognition.load_image_file('camera.jpg')
+                
+                face_location = face_recognition.face_locations(image, model="hog")
+                face_encoding = face_recognition.face_encodings(image, face_location)
                 ## return first & only encoding
                 return face_encoding[0] if len(face_encoding) == 1 else None
         
-    def recognize_face(self, model_path):
-        camera_encoding = self.take_webcam_img()
-        if camera_encoding is None:
-            raise ValueError("Camera Encoding return None!")
-        train_model = self.read_pickle_model(model_path)
-        boolean_matches = face_recognition.compare_faces(
-            train_model['encodings'], camera_encoding
-        )
-        
-        face_distances = face_recognition.face_distance(train_model['encodings'], camera_encoding)
-        
-        best_match_index = argmin(face_distances)
-        # print(set(train_model['names']))
-        if boolean_matches[best_match_index]:
-            name = train_model['names'][best_match_index]
-            return 200, name
-        else:
-            print("something")
-            return None, 'Unknown'
+    def recognize_face(self):
+        try:
+            camera_encoding = self.take_webcam_img()
+            if camera_encoding is None:
+                raise CameraEncodingError("Camera Encoding return None!")
+            
+            train_model = self.read_pickle_model()
+            boolean_matches = face_recognition.compare_faces(
+                train_model['encodings'], camera_encoding, 0.35
+            )
+            
+            face_distances = face_recognition.face_distance(train_model['encodings'], camera_encoding)
+            best_match_index = argmin(face_distances)
+            
+            ## get all trained_names
+            # print(set(train_model['names']))
+            
+            if boolean_matches[best_match_index]:
+                if name := train_model['names'][best_match_index]:
+                    return name
+                else:
+                    print("Name not included!")
+            else:
+                print("Can't find in boolean_matches")
+            return 'Unknown'
+        except CameraEncodingError as e:
+            print("Make sure your face is in front of camera!")
+            time.sleep(2)
+            self.recognize_face()
+            

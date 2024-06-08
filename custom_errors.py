@@ -3,3 +3,6 @@ class NoFaceDetectError(Exception):
 
 class MultiFaceDetectError(Exception):
     pass
+
+class CameraEncodingError(Exception):
+    pass

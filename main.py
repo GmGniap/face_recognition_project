@@ -9,14 +9,12 @@ rpi = RaspberryPi()
 while True:
     if rpi.receive_data() == 'start':
         ## Testing Code
-        test = FaceRecognitionPi()
+        test = FaceRecognitionPi(model_path)
 
-        status, name = test.recognize_face(model_path)
-        if status == 200:
+        name = test.recognize_face()
+        if name != 'Unknown':
             print(f"Allow access for {name}")
             rpi.send_data('on')
             print("Sent data!")
-            time.sleep(10)
-            rpi.send_data('off')
         else:
             print(f"Can't allow for {name}")
