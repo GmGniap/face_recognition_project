@@ -130,6 +130,7 @@ class FaceRecognitionPi(RaspberryPi):
                     print("Name not included!")
             else:
                 print("Can't find in boolean_matches")
+            self.send_data('000')
             return 'Unknown'
         except CameraEncodingError as e:
             print("Make sure your face is in front of camera!")
