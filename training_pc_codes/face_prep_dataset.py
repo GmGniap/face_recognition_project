@@ -1,7 +1,7 @@
 import cv2
 import os
 
-from constants import VIDEO_WIDTH, VIDEO_HEIGHT, NUM_TRAINING_IMG
+from rpi_constants import VIDEO_WIDTH, VIDEO_HEIGHT, NUM_TRAINING_IMG
 cap = cv2.VideoCapture(0)
 
 ## Check if the webcam is opened correctly
@@ -18,6 +18,7 @@ face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_fronta
 def quit_opencv(cap):
     cap.release()
     cv2.destroyAllWindows()
+
 def prep_training(person_name: str, count:int):
     while True:
         ret, frame = cap.read()

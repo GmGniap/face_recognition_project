@@ -19,7 +19,7 @@ for path in Path('train_images').iterdir():
             print(img_file)
             image = face_recognition.load_image_file(img_file)
 
-            face_location = face_recognition.face_locations(image, model='hog')
+            face_location = face_recognition.face_locations(image, model='cnn')
             
             ## check training_img has only 1 person face
             if len(face_location) > 1:

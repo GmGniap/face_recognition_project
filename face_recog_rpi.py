@@ -6,18 +6,20 @@ import dlib
 from pathlib import Path
 from rpi_controller import RaspberryPi
 import time
-from custom_errors import CameraEncodingError, NoFaceDetectError, MultiFaceDetectError
+from custom_errors import CameraEncodingError
 
-class FaceRecognitionPi:
+class FaceRecognitionPi(RaspberryPi):
     def __init__(self, model_path : Path) -> None:
+        super().__init__()
         self.model_path = model_path
-    
+        ## To count multiple face & no face error
+        self.error_count = 0
+         
     def read_pickle_model(self) -> dict:
         '''
         MODEL_PATH : Exact location of Pickle file that stored model
         Return : Reconstituted object hierarchy (which is Dict)
         '''
-        
         ## check MODEL_PATH is a file
         if self.model_path.is_file():
             with self.model_path.open(mode="rb") as model:
@@ -43,6 +45,19 @@ class FaceRecognitionPi:
         )
         return faces
     
+    def select_detection_method(self, gray):
+        if self.error_count <= 5:
+            print("Dlib face detection method")
+            faces = self.dlib_hog_method(gray)
+        else:
+            print("OpenCV haar cascade face detection method")
+            faces = self.haar_cascade_method(gray)
+            if self.error_count > 10:
+                print("Reset error_count!")
+                self.send_data('999') ## also reset pico code
+                self.error_count = 0
+        return faces
+        
     def take_webcam_img(self):
         ## open the webcam
         cap = cv2.VideoCapture(0)
@@ -54,8 +69,7 @@ class FaceRecognitionPi:
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 300)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 300)
         
-        ## To count multiple face & no face error
-        error_count = 0
+        
         while True:
             ## Capture a frame
             ret, frame = cap.read()
@@ -64,32 +78,23 @@ class FaceRecognitionPi:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             
             ## run face detection method - default OpenCV Cascade
-            if error_count < 5:
-                print("Dlib face detection method")
-                faces = self.dlib_hog_method(gray)
-            else:
-                print("OpenCV haar cascade face detection method")
-                faces = self.haar_cascade_method(gray)
-                if error_count > 10:
-                    print("Reset error_count!")
-                    error_count = 0
+            faces = self.select_detection_method(gray)
         
             if len(faces) < 1:
                 print("No face detected!")
-                error_count += 1
+                self.send_data('000') 
+                self.error_count += 1
                 time.sleep(2)
                 continue
             elif len(faces) > 1:
                 print(f"Multiple {len(faces)} faces more than 1.")
-                error_count += 1
+                self.send_data('111')
+                self.error_count += 1
                 time.sleep(2)
                 continue
             else:
                 print(f"Only {len(faces)} face detected!")
                 
-                ## why do I need to get x,y,w,h?
-                # for (x,y,w,h) in faces:
-                #     roi_color = frame[y:y+h, x:x+w]
                 cv2.imwrite('camera.jpg', frame)
                 image = face_recognition.load_image_file('camera.jpg')
                 
@@ -117,6 +122,9 @@ class FaceRecognitionPi:
             
             if boolean_matches[best_match_index]:
                 if name := train_model['names'][best_match_index]:
+                    ## Send authorized code to open door
+                    self.send_data('on')
+                    print("Sent authorized code!")
                     return name
                 else:
                     print("Name not included!")

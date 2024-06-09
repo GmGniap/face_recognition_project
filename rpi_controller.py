@@ -1,11 +1,12 @@
 import serial
-from constants import UART_PORT, BAUDRATE
+
 
 class RaspberryPi:
     """
     RaspberryPi UART communication using Pyserial Library
     """
     def __init__(self):
+        from rpi_constants import UART_PORT, BAUDRATE
         self.UART_PORT = UART_PORT
         self.BAUDRATE = BAUDRATE
     
