@@ -1,9 +1,8 @@
-from pico_constants import BUTTON_PIN, LED1_PIN, LED2_PIN, LED3_PIN
+from pico_constants import BUTTON_PIN, RED_PIN, GREEN_PIN, YELLOW_PIN
 from components.led import LED
 from components.button import Button
-from utime import sleep
 
-lst_leds = [LED1_PIN, LED2_PIN, LED3_PIN]
+lst_leds = [RED_PIN, GREEN_PIN, YELLOW_PIN]
 button = Button(BUTTON_PIN).get_button_pin()
 count = 0
 while True:

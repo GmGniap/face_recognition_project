@@ -9,10 +9,7 @@ class Slide:
         '''
         Default : Left(GND) -> 0, Right(Postive) -> 1
         '''
-        if self.slide_pin.value() == 0:
-            self.slide_pos = "Left"
-        else:
-            self.slide_pos = "Right"
+        self.slide_pos = "Left" if self.slide_pin.value() == 0 else "Right"
     
     def get_slide_pos(self):
         return self.slide_pos
