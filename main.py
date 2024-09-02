@@ -3,7 +3,7 @@ from face_recog_rpi import FaceRecognitionPi
 from pathlib import Path
 import time
 
-model_path = Path('output/June8_MODEL3.pickle')
+model_path = Path('output/August31_MODEL1.pickle')
 rpi = RaspberryPi()
 
 while True:
